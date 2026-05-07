@@ -1,5 +1,9 @@
-import { Graphics } from "pixi.js";
-import { Pseudo3DCamera, type ProjectedPoint, type WorldPoint } from "./Pseudo3DCamera";
+import type { Graphics } from "pixi.js";
+import type {
+	ProjectedPoint,
+	Pseudo3DCamera,
+	WorldPoint,
+} from "./Pseudo3DCamera";
 
 const ELLIPSE_KAPPA = 0.5522847498307936;
 
@@ -12,6 +16,19 @@ type BillboardOptions = {
 	color: number;
 	strokeColor?: number;
 	strokeWidth?: number;
+};
+
+type BillboardQuadOptions = {
+	x: number;
+	y: number;
+	z: number;
+	width: number;
+	height: number;
+	color: number;
+	strokeColor?: number;
+	strokeWidth?: number;
+	rotation?: number;
+	offsetYRatio?: number;
 };
 
 export class WorldRenderer {
@@ -31,7 +48,14 @@ export class WorldRenderer {
 		return this.project({ x, y, z }).depth;
 	}
 
-	drawProjectedEllipse(x: number, y: number, z: number, radius: number, color: number, alpha = 1) {
+	drawProjectedEllipse(
+		x: number,
+		y: number,
+		z: number,
+		radius: number,
+		color: number,
+		alpha = 1,
+	) {
 		const center = this.project({ x, y, z });
 		const axisX = this.project({ x: x + radius, y, z });
 		const axisY = this.project({ x, y: y + radius, z });
@@ -84,6 +108,43 @@ export class WorldRenderer {
 			spriteWidth,
 			spriteHeight,
 		);
+		this.graphics.fill({ color: options.color });
+		this.graphics.stroke({
+			color: options.strokeColor ?? 0xffffff,
+			width: options.strokeWidth ?? Math.max(1, 2 * feet.scale),
+		});
+	}
+
+	drawBillboardQuad(options: BillboardQuadOptions) {
+		const feet = this.project({ x: options.x, y: options.y, z: options.z });
+		const head = this.project({
+			x: options.x,
+			y: options.y,
+			z: options.z + options.height,
+		});
+		const spriteWidth = this.camera.tileSize * options.width * feet.scale;
+		const spriteHeight = Math.abs(feet.y - head.y);
+		const halfWidth = spriteWidth * 0.5;
+		const offsetY = (options.offsetYRatio ?? 0) * spriteHeight;
+		const rotation = options.rotation ?? 0;
+		const cos = Math.cos(rotation);
+		const sin = Math.sin(rotation);
+		const pivotX = feet.x;
+		const pivotY = feet.y + this.screenOffsetY - offsetY;
+		const rotatePoint = (localX: number, localY: number) => ({
+			x: pivotX + localX * cos - localY * sin,
+			y: pivotY + localX * sin + localY * cos,
+		});
+		const topLeft = rotatePoint(-halfWidth, -spriteHeight);
+		const topRight = rotatePoint(halfWidth, -spriteHeight);
+		const bottomRight = rotatePoint(halfWidth, 0);
+		const bottomLeft = rotatePoint(-halfWidth, 0);
+
+		this.graphics.moveTo(topLeft.x, topLeft.y);
+		this.graphics.lineTo(topRight.x, topRight.y);
+		this.graphics.lineTo(bottomRight.x, bottomRight.y);
+		this.graphics.lineTo(bottomLeft.x, bottomLeft.y);
+		this.graphics.closePath();
 		this.graphics.fill({ color: options.color });
 		this.graphics.stroke({
 			color: options.strokeColor ?? 0xffffff,

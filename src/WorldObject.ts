@@ -5,4 +5,5 @@ export interface WorldObject {
 	y: number;
 	z: number;
 	render(renderer: WorldRenderer): void;
+	update(deltaTime: number): void;
 }

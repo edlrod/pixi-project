@@ -9,80 +9,11 @@ import { WorldRenderer } from "./WorldRenderer";
 const RENDER_RADIUS = 16;
 const TILE_SIZE = 48;
 
-function createWorld() {
-	return new World(({ x, y, z }) => ({
-		x,
-		y,
-		z,
-		color: (x + y) % 2 === 0 ? 0x4c8f4a : 0x5ca857,
-	}));
-}
-
-function drawWorldTiles(
-	graphics: Graphics,
-	app: Application,
-	camera: Pseudo3DCamera,
-	world: World,
-	queryCenterX: number,
-	queryCenterY: number,
-	fadeCenterX: number,
-	fadeCenterY: number,
-	screenOffsetY: number,
-) {
-	graphics.clear();
-
-	graphics.rect(0, 0, app.screen.width, app.screen.height);
-	graphics.fill({ color: 0x102033 });
-
-	const visibleTiles = world.getTilesInRadius(queryCenterX, queryCenterY, RENDER_RADIUS);
-
-	for (const tile of visibleTiles) {
-		const half = 0.5;
-		const dx = tile.x - fadeCenterX;
-		const dy = tile.y - fadeCenterY;
-		const distance = Math.sqrt(dx * dx + dy * dy);
-		const fadeStart = RENDER_RADIUS * 0.7;
-		const fadeRange = Math.max(0.0001, RENDER_RADIUS - fadeStart);
-		const alpha =
-			distance <= fadeStart
-				? 1
-				: Math.max(0, 1 - (distance - fadeStart) / fadeRange);
-
-		const topLeft = camera.project(
-			{ x: tile.x - half, y: tile.y - half, z: tile.z ?? 0 },
-			app.screen.width,
-			app.screen.height,
-		);
-		const topRight = camera.project(
-			{ x: tile.x + half, y: tile.y - half, z: tile.z ?? 0 },
-			app.screen.width,
-			app.screen.height,
-		);
-		const bottomRight = camera.project(
-			{ x: tile.x + half, y: tile.y + half, z: tile.z ?? 0 },
-			app.screen.width,
-			app.screen.height,
-		);
-		const bottomLeft = camera.project(
-			{ x: tile.x - half, y: tile.y + half, z: tile.z ?? 0 },
-			app.screen.width,
-			app.screen.height,
-		);
-
-		graphics.moveTo(topLeft.x, topLeft.y + screenOffsetY);
-		graphics.lineTo(topRight.x, topRight.y + screenOffsetY);
-		graphics.lineTo(bottomRight.x, bottomRight.y + screenOffsetY);
-		graphics.lineTo(bottomLeft.x, bottomLeft.y + screenOffsetY);
-		graphics.closePath();
-		graphics.fill({ color: tile.color, alpha });
-	}
-}
-
 (async () => {
 	const app = new Application();
 
 	await app.init({
-		background: "#08131f",
+		background: "#b8d9fd",
 		resizeTo: window,
 		antialias: true,
 	});
@@ -101,9 +32,15 @@ function drawWorldTiles(
 			fontSize: 14,
 		},
 	});
-	const world = createWorld();
-	const player = new Player(0, 0);
+	const world = new World(({ x, y, z }) => ({
+		x,
+		y,
+		z,
+		color: (x + y) % 2 === 0 ? 0x4c8f4a : 0x5ca857,
+	}));
 	const input = new Input(window);
+	const player = new Player(input, 0, 0);
+	const worldObjects: WorldObject[] = [player];
 
 	const camera = new Pseudo3DCamera({
 		tileSize: TILE_SIZE,
@@ -137,13 +74,25 @@ function drawWorldTiles(
 			app.screen.height,
 			screenOffsetY,
 		);
-		const worldObjects: WorldObject[] = [player];
-		worldObjects.sort(
-			(left, right) => worldRenderer.getDepth(right.x, right.y, right.z) - worldRenderer.getDepth(left.x, left.y, left.z),
+
+		world.drawWorldTiles(
+			scene,
+			app,
+			camera,
+			world,
+			tileX,
+			tileY,
+			player.x,
+			player.y,
+			screenOffsetY,
+			RENDER_RADIUS,
 		);
 
-		drawWorldTiles(scene, app, camera, world, tileX, tileY, player.x, player.y, screenOffsetY);
-
+		worldObjects.sort(
+			(left, right) =>
+				worldRenderer.getDepth(right.x, right.y, right.z) -
+				worldRenderer.getDepth(left.x, left.y, left.z),
+		);
 		for (const worldObject of worldObjects) {
 			worldObject.render(worldRenderer);
 		}
@@ -160,25 +109,9 @@ function drawWorldTiles(
 	};
 
 	app.ticker.add((ticker) => {
-		const moveStep = player.moveSpeed * ticker.deltaTime;
-		const turnStep = player.turnSpeed * ticker.deltaTime;
-
-		if (input.isHeld("KeyW")) {
-			player.moveForward(moveStep);
-		}
-
-		if (input.isHeld("KeyS")) {
-			player.moveForward(-moveStep);
-		}
-
-		if (input.isHeld("KeyA")) {
-			player.turn(turnStep);
-		}
-
-		if (input.isHeld("KeyD")) {
-			player.turn(-turnStep);
-		}
-
+		worldObjects.forEach((obj) => {
+			obj.update(ticker.deltaTime);
+		});
 		renderScene();
 	});
 })();
