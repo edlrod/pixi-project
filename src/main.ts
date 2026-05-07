@@ -1,11 +1,11 @@
 import { Application, Container, Graphics, Text } from "pixi.js";
-import { Input } from "./Input";
-import { Player } from "./Player";
+import { Input } from "./core/Input";
+import { Player } from "./entities/Player";
+import { Roamer } from "./entities/Roamer";
 import { Pseudo3DCamera } from "./Pseudo3DCamera";
-import { Roamer } from "./Roamer";
-import { World } from "./World";
-import type { WorldObject } from "./WorldObject";
 import { WorldRenderer } from "./WorldRenderer";
+import { World } from "./world/World";
+import type { WorldObject } from "./world/WorldObject";
 
 const RENDER_RADIUS = 16;
 const TILE_SIZE = 48;

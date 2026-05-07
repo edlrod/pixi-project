@@ -1,4 +1,4 @@
-import type { WorldRenderer } from "./WorldRenderer";
+import type { WorldRenderer } from "../WorldRenderer";
 
 export interface WorldObject {
 	x: number;

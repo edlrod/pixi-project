@@ -1,5 +1,5 @@
 import type { Application, Graphics } from "pixi.js";
-import type { Pseudo3DCamera } from "./Pseudo3DCamera";
+import type { Pseudo3DCamera } from "../Pseudo3DCamera";
 
 export type TilePosition = {
 	x: number;

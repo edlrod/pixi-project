@@ -1,6 +1,6 @@
-import type { Input } from "./Input";
-import type { WorldObject } from "./WorldObject";
-import type { WorldRenderer } from "./WorldRenderer";
+import type { Input } from "../core/Input";
+import type { WorldRenderer } from "../WorldRenderer";
+import type { WorldObject } from "../world/WorldObject";
 
 export class Player implements WorldObject {
 	private static readonly GROUND_CONTACT_CYCLE = Math.PI;

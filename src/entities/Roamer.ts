@@ -1,5 +1,5 @@
-import type { WorldObject } from "./WorldObject";
-import type { WorldRenderer } from "./WorldRenderer";
+import type { WorldRenderer } from "../WorldRenderer";
+import type { WorldObject } from "../world/WorldObject";
 
 function normalizeAngle(angle: number) {
 	while (angle > Math.PI) angle -= Math.PI * 2;
