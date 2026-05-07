@@ -2,6 +2,7 @@ import { Application, Container, Graphics, Text } from "pixi.js";
 import { Input } from "./Input";
 import { Player } from "./Player";
 import { Pseudo3DCamera } from "./Pseudo3DCamera";
+import { Roamer } from "./Roamer";
 import { World } from "./World";
 import type { WorldObject } from "./WorldObject";
 import { WorldRenderer } from "./WorldRenderer";
@@ -40,7 +41,18 @@ const TILE_SIZE = 48;
 	}));
 	const input = new Input(window);
 	const player = new Player(input, 0, 0);
-	const worldObjects: WorldObject[] = [player];
+
+	const totalRoamers = 25;
+	const worldObjects: WorldObject[] = [
+		player,
+		...Array.from({ length: totalRoamers }, () => null).map(
+			(_, i) =>
+				new Roamer(
+					4 * Math.cos((i / totalRoamers) * Math.PI * 2),
+					4 * Math.sin((i / totalRoamers) * Math.PI * 2),
+				),
+		),
+	];
 
 	const camera = new Pseudo3DCamera({
 		tileSize: TILE_SIZE,
@@ -100,6 +112,7 @@ const TILE_SIZE = 48;
 		label.text = [
 			"W/S move player | A/D turn player",
 			"camera follows player position and direction",
+			`${worldObjects.length - 1} roamers active`,
 			`rendering tiles in radius ${RENDER_RADIUS} around (${tileX}, ${tileY})`,
 			`player: x=${player.x.toFixed(2)} y=${player.y.toFixed(2)} direction=${player.direction.toFixed(2)}`,
 			`camera: x=${camera.x.toFixed(2)} y=${camera.y.toFixed(2)} yaw=${camera.yaw.toFixed(2)} pitch=${camera.pitch.toFixed(2)} tileSize=${camera.tileSize}`,
