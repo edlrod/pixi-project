@@ -3,6 +3,8 @@ import { Input } from "./Input";
 import { Player } from "./Player";
 import { Pseudo3DCamera } from "./Pseudo3DCamera";
 import { World } from "./World";
+import type { WorldObject } from "./WorldObject";
+import { WorldRenderer } from "./WorldRenderer";
 
 const RENDER_RADIUS = 16;
 const TILE_SIZE = 48;
@@ -21,8 +23,10 @@ function drawWorldTiles(
 	app: Application,
 	camera: Pseudo3DCamera,
 	world: World,
-	centerX: number,
-	centerY: number,
+	queryCenterX: number,
+	queryCenterY: number,
+	fadeCenterX: number,
+	fadeCenterY: number,
 	screenOffsetY: number,
 ) {
 	graphics.clear();
@@ -30,10 +34,19 @@ function drawWorldTiles(
 	graphics.rect(0, 0, app.screen.width, app.screen.height);
 	graphics.fill({ color: 0x102033 });
 
-	const visibleTiles = world.getTilesInRadius(centerX, centerY, RENDER_RADIUS);
+	const visibleTiles = world.getTilesInRadius(queryCenterX, queryCenterY, RENDER_RADIUS);
 
 	for (const tile of visibleTiles) {
 		const half = 0.5;
+		const dx = tile.x - fadeCenterX;
+		const dy = tile.y - fadeCenterY;
+		const distance = Math.sqrt(dx * dx + dy * dy);
+		const fadeStart = RENDER_RADIUS * 0.7;
+		const fadeRange = Math.max(0.0001, RENDER_RADIUS - fadeStart);
+		const alpha =
+			distance <= fadeStart
+				? 1
+				: Math.max(0, 1 - (distance - fadeStart) / fadeRange);
 
 		const topLeft = camera.project(
 			{ x: tile.x - half, y: tile.y - half, z: tile.z ?? 0 },
@@ -61,89 +74,8 @@ function drawWorldTiles(
 		graphics.lineTo(bottomRight.x, bottomRight.y + screenOffsetY);
 		graphics.lineTo(bottomLeft.x, bottomLeft.y + screenOffsetY);
 		graphics.closePath();
-		graphics.fill({ color: tile.color });
+		graphics.fill({ color: tile.color, alpha });
 	}
-}
-
-function drawPlayer(
-	graphics: Graphics,
-	app: Application,
-	camera: Pseudo3DCamera,
-	player: Player,
-	screenOffsetY: number,
-) {
-	const screenWidth = app.screen.width;
-	const screenHeight = app.screen.height;
-	const feet = camera.project(
-		{ x: player.x, y: player.y, z: player.z },
-		screenWidth,
-		screenHeight,
-	);
-	const head = camera.project(
-		{ x: player.x, y: player.y, z: player.z + player.height },
-		screenWidth,
-		screenHeight,
-	);
-	const spriteWidth = camera.tileSize * player.width * feet.scale;
-	const spriteHeight = Math.abs(feet.y - head.y);
-	const shadowRadius = player.width * 0.35;
-	const shadowCenter = camera.project(
-		{ x: player.x, y: player.y, z: player.z },
-		screenWidth,
-		screenHeight,
-	);
-	const shadowAxisX = camera.project(
-		{ x: player.x + shadowRadius, y: player.y, z: player.z },
-		screenWidth,
-		screenHeight,
-	);
-	const shadowAxisY = camera.project(
-		{ x: player.x, y: player.y + shadowRadius, z: player.z },
-		screenWidth,
-		screenHeight,
-	);
-	const basisX = {
-		x: shadowAxisX.x - shadowCenter.x,
-		y: shadowAxisX.y - shadowCenter.y,
-	};
-	const basisY = {
-		x: shadowAxisY.x - shadowCenter.x,
-		y: shadowAxisY.y - shadowCenter.y,
-	};
-	const ellipseKappa = 0.5522847498307936;
-	const offsetY = screenOffsetY;
-	const ellipsePoint = (ax: number, ay: number) => ({
-		x: shadowCenter.x + basisX.x * ax + basisY.x * ay,
-		y: shadowCenter.y + basisX.y * ax + basisY.y * ay + offsetY,
-	});
-	const p0 = ellipsePoint(1, 0);
-	const p1 = ellipsePoint(1, ellipseKappa);
-	const p2 = ellipsePoint(ellipseKappa, 1);
-	const p3 = ellipsePoint(0, 1);
-	const p4 = ellipsePoint(-ellipseKappa, 1);
-	const p5 = ellipsePoint(-1, ellipseKappa);
-	const p6 = ellipsePoint(-1, 0);
-	const p7 = ellipsePoint(-1, -ellipseKappa);
-	const p8 = ellipsePoint(-ellipseKappa, -1);
-	const p9 = ellipsePoint(0, -1);
-	const p10 = ellipsePoint(ellipseKappa, -1);
-	const p11 = ellipsePoint(1, -ellipseKappa);
-
-	graphics.moveTo(p0.x, p0.y);
-	graphics.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
-	graphics.bezierCurveTo(p4.x, p4.y, p5.x, p5.y, p6.x, p6.y);
-	graphics.bezierCurveTo(p7.x, p7.y, p8.x, p8.y, p9.x, p9.y);
-	graphics.bezierCurveTo(p10.x, p10.y, p11.x, p11.y, p0.x, p0.y);
-	graphics.fill({ color: 0x000000, alpha: 0.22 });
-
-	graphics.rect(
-		feet.x - spriteWidth * 0.5,
-		feet.y - spriteHeight + screenOffsetY,
-		spriteWidth,
-		spriteHeight,
-	);
-	graphics.fill({ color: player.color });
-	graphics.stroke({ color: 0xff8787, width: Math.max(1, 2 * feet.scale) });
 }
 
 (async () => {
@@ -198,9 +130,23 @@ function drawPlayer(
 		);
 		const targetScreenY = app.screen.height * camera.followScreenY;
 		const screenOffsetY = camera.getFollowOffset(targetScreenY, playerFeet.y);
+		const worldRenderer = new WorldRenderer(
+			scene,
+			camera,
+			app.screen.width,
+			app.screen.height,
+			screenOffsetY,
+		);
+		const worldObjects: WorldObject[] = [player];
+		worldObjects.sort(
+			(left, right) => worldRenderer.getDepth(right.x, right.y, right.z) - worldRenderer.getDepth(left.x, left.y, left.z),
+		);
 
-		drawWorldTiles(scene, app, camera, world, tileX, tileY, screenOffsetY);
-		drawPlayer(scene, app, camera, player, screenOffsetY);
+		drawWorldTiles(scene, app, camera, world, tileX, tileY, player.x, player.y, screenOffsetY);
+
+		for (const worldObject of worldObjects) {
+			worldObject.render(worldRenderer);
+		}
 
 		label.text = [
 			"W/S move player | A/D turn player",

@@ -1,4 +1,7 @@
-export class Player {
+import type { WorldObject } from "./WorldObject";
+import type { WorldRenderer } from "./WorldRenderer";
+
+export class Player implements WorldObject {
 	x: number;
 	y: number;
 	z: number;
@@ -28,5 +31,25 @@ export class Player {
 
 	turn(amount: number) {
 		this.direction += amount;
+	}
+
+	render(renderer: WorldRenderer) {
+		renderer.drawProjectedEllipse(
+			this.x,
+			this.y,
+			this.z,
+			this.width * 0.5,
+			0x000000,
+			0.22,
+		);
+		renderer.drawBillboard({
+			x: this.x,
+			y: this.y,
+			z: this.z,
+			width: this.width,
+			height: this.height,
+			color: this.color,
+			strokeColor: 0xff8787,
+		});
 	}
 }

@@ -32,9 +32,7 @@ export class World {
 		const key = tileKey(x, y, z);
 		const existingTile = this.tiles.get(key);
 
-		if (existingTile) {
-			return existingTile;
-		}
+		if (existingTile) return existingTile;
 
 		const generatedTile = this.generateTile({ x, y, z });
 		this.setTile(generatedTile);
@@ -48,14 +46,18 @@ export class World {
 
 	getTilesInRadius(centerX: number, centerY: number, radius: number, z = 0) {
 		const tiles: WorldTile[] = [];
+		const radiusSquared = radius * radius;
 
 		for (let y = centerY - radius; y <= centerY + radius; y += 1) {
 			for (let x = centerX - radius; x <= centerX + radius; x += 1) {
+				const dx = x - centerX;
+				const dy = y - centerY;
+
+				if (dx * dx + dy * dy > radiusSquared) continue;
+
 				const tile = this.getTile(x, y, z);
 
-				if (!tile) {
-					continue;
-				}
+				if (!tile) continue;
 
 				tiles.push(tile);
 			}
