@@ -85,6 +85,9 @@ const TILE_SIZE = 48;
 			app.screen.width,
 			app.screen.height,
 			screenOffsetY,
+			player.x,
+			player.y,
+			RENDER_RADIUS,
 		);
 
 		world.drawWorldTiles(

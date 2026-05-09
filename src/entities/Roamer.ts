@@ -150,6 +150,7 @@ export class Roamer implements WorldObject {
 	}
 
 	render(renderer: WorldRenderer): void {
+		const alpha = renderer.getFadeAlpha(this.x, this.y);
 		const swing = this.isWalkAnimating
 			? Math.sin(this.walkPhase) * this.walkBlend
 			: 0;
@@ -167,7 +168,7 @@ export class Roamer implements WorldObject {
 			this.z,
 			this.width * 0.45,
 			0x000000,
-			0.18,
+			0.18 * alpha,
 		);
 		renderer.drawBillboardQuad({
 			x: this.x,
@@ -179,6 +180,7 @@ export class Roamer implements WorldObject {
 			strokeColor: 0x93c5fd,
 			rotation,
 			offsetYRatio: bob,
+			alpha,
 		});
 	}
 }

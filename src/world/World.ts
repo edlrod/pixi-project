@@ -1,4 +1,5 @@
 import type { Application, Graphics } from "pixi.js";
+import { getRadialFadeAlpha } from "../core/getRadialFadeAlpha";
 import type { Pseudo3DCamera } from "../Pseudo3DCamera";
 
 export type TilePosition = {
@@ -94,15 +95,11 @@ export class World {
 
 		for (const tile of visibleTiles) {
 			const half = 0.5;
-			const dx = tile.x - fadeCenterX;
-			const dy = tile.y - fadeCenterY;
-			const distance = Math.sqrt(dx * dx + dy * dy);
-			const fadeStart = renderRadius * 0.7;
-			const fadeRange = Math.max(0.0001, renderRadius - fadeStart);
-			const alpha =
-				distance <= fadeStart
-					? 1
-					: Math.max(0, 1 - (distance - fadeStart) / fadeRange);
+			const alpha = getRadialFadeAlpha(tile.x, tile.y, {
+				centerX: fadeCenterX,
+				centerY: fadeCenterY,
+				radius: renderRadius,
+			});
 
 			const topLeft = camera.project(
 				{ x: tile.x - half, y: tile.y - half, z: tile.z ?? 0 },

@@ -1,4 +1,5 @@
 import type { Graphics } from "pixi.js";
+import { getRadialFadeAlpha } from "./core/getRadialFadeAlpha";
 import type {
 	ProjectedPoint,
 	Pseudo3DCamera,
@@ -16,6 +17,7 @@ type BillboardOptions = {
 	color: number;
 	strokeColor?: number;
 	strokeWidth?: number;
+	alpha?: number;
 };
 
 type BillboardQuadOptions = {
@@ -29,6 +31,7 @@ type BillboardQuadOptions = {
 	strokeWidth?: number;
 	rotation?: number;
 	offsetYRatio?: number;
+	alpha?: number;
 };
 
 export class WorldRenderer {
@@ -38,6 +41,9 @@ export class WorldRenderer {
 		private readonly screenWidth: number,
 		private readonly screenHeight: number,
 		private readonly screenOffsetY: number,
+		private readonly fadeCenterX: number,
+		private readonly fadeCenterY: number,
+		private readonly fadeRadius: number,
 	) {}
 
 	project(point: WorldPoint): ProjectedPoint {
@@ -46,6 +52,14 @@ export class WorldRenderer {
 
 	getDepth(x: number, y: number, z = 0) {
 		return this.project({ x, y, z }).depth;
+	}
+
+	getFadeAlpha(x: number, y: number) {
+		return getRadialFadeAlpha(x, y, {
+			centerX: this.fadeCenterX,
+			centerY: this.fadeCenterY,
+			radius: this.fadeRadius,
+		});
 	}
 
 	drawProjectedEllipse(
@@ -108,10 +122,11 @@ export class WorldRenderer {
 			spriteWidth,
 			spriteHeight,
 		);
-		this.graphics.fill({ color: options.color });
+		this.graphics.fill({ color: options.color, alpha: options.alpha ?? 1 });
 		this.graphics.stroke({
 			color: options.strokeColor ?? 0xffffff,
 			width: options.strokeWidth ?? Math.max(1, 2 * feet.scale),
+			alpha: options.alpha ?? 1,
 		});
 	}
 
@@ -145,10 +160,11 @@ export class WorldRenderer {
 		this.graphics.lineTo(bottomRight.x, bottomRight.y);
 		this.graphics.lineTo(bottomLeft.x, bottomLeft.y);
 		this.graphics.closePath();
-		this.graphics.fill({ color: options.color });
+		this.graphics.fill({ color: options.color, alpha: options.alpha ?? 1 });
 		this.graphics.stroke({
 			color: options.strokeColor ?? 0xffffff,
 			width: options.strokeWidth ?? Math.max(1, 2 * feet.scale),
+			alpha: options.alpha ?? 1,
 		});
 	}
 }
